@@ -1,0 +1,54 @@
+{
+    "match_statistics": {
+        "total_rallies": 0,
+        "total_frames_analyzed": 214
+    },
+    "players": {
+        "player_1": {
+            "total_shots": 2,
+            "serves": 2,
+            "estimated_forehand": 2,
+            "estimated_backhand": 0,
+            "forehand_percentage": 100.0,
+            "backhand_percentage": 0.0,
+            "court_positioning": {
+                "left_court": 68.22,
+                "right_court": 31.78,
+                "front_court": 0.0,
+                "back_court": 100.0
+            },
+            "total_distance_meters": 13.029999732971191,
+            "average_speed_pixels_per_sec": 171.81,
+            "max_speed_pixels_per_sec": 576.22,
+            "rallies_won": 0,
+            "rallies_lost": 0,
+            "longest_rally_won": 0,
+            "win_rate": 0.0,
+            "crosscourt_shots": 0,
+            "down_the_line_shots": 2
+        },
+        "player_2": {
+            "total_shots": 2,
+            "serves": 0,
+            "estimated_forehand": 0,
+            "estimated_backhand": 1,
+            "forehand_percentage": 0.0,
+            "backhand_percentage": 50.0,
+            "court_positioning": {
+                "left_court": 43.93,
+                "right_court": 56.07,
+                "front_court": 100.0,
+                "back_court": 0.0
+            },
+            "total_distance_meters": 16.09000015258789,
+            "average_speed_pixels_per_sec": 113.04,
+            "max_speed_pixels_per_sec": 423.92,
+            "rallies_won": 0,
+            "rallies_lost": 0,
+            "longest_rally_won": 0,
+            "win_rate": 0.0,
+            "crosscourt_shots": 0,
+            "down_the_line_shots": 2
+        }
+    }
+}
