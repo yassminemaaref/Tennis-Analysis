@@ -13,21 +13,7 @@ import warnings
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'output_videos'
-ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
-
-# Create necessary directories
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-# Store processing status
-processing_status = {}
 
 warnings.filterwarnings("ignore", message="The parameter 'pretrained' is deprecated")
 
@@ -68,51 +54,6 @@ def process_video_async(video_id, input_path):
                 'json_file': f'statistics_{video_id}.json',
                 'excel_file': f'statistics_{video_id}.xlsx'
             }
-        else:
-            error_msg = result.stderr if result.stderr else 'Unknown error'
-            processing_status[video_id] = {
-                'status': 'error',
-                'progress': 0,
-                'message': f'Processing failed: {error_msg[:200]}'  # Limit error message length
-            }
-            
-    except subprocess.TimeoutExpired:
-        processing_status[video_id] = {
-            'status': 'error',
-            'progress': 0,
-            'message': 'Processing timeout (exceeded 10 minutes)'
-        }
-    except Exception as e:
-        processing_status[video_id] = {
-            'status': 'error',
-            'progress': 0,
-            'message': f'Error: {str(e)}'
-        }
-@app.route('/api/debug/<video_id>', methods=['GET'])
-def debug_video(video_id):
-    """Debug endpoint to check if video exists"""
-    video_path = os.path.join(app.config['OUTPUT_FOLDER'], f'output_{video_id}.avi')
-    
-    return jsonify({
-        'video_id': video_id,
-        'video_path': video_path,
-        'exists': os.path.exists(video_path),
-        'file_size': os.path.getsize(video_path) if os.path.exists(video_path) else 0,
-        'output_folder_contents': os.listdir(app.config['OUTPUT_FOLDER'])
-    })
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'Tennis Analysis API is running'})
-
-@app.route('/api/upload', methods=['POST'])
-def upload_video():
-    """Upload video endpoint"""
-    if 'video' not in request.files:
-        return jsonify({'error': 'No video file provided'}), 400
-    
-    file = request.files['video']
     
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
@@ -154,43 +95,7 @@ def get_json_results(video_id):
     if not os.path.exists(json_path):
         return jsonify({'error': 'Results not found'}), 404
     
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-    
-    return jsonify(data)
-
-@app.route('/api/results/<video_id>/rallies', methods=['GET'])
-def get_rally_results(video_id):
-    """Get rally statistics"""
-    rally_path = os.path.join(app.config['OUTPUT_FOLDER'], f'rallies_{video_id}.json')
-    
-    if not os.path.exists(rally_path):
-        return jsonify({'error': 'Rally data not found'}), 404
-    
-    with open(rally_path, 'r') as f:
-        data = json.load(f)
-    
-    return jsonify(data)
-# @app.route('/api/results/<video_id>/video', methods=['GET'])
-# def get_video_results(video_id):
-#     """Stream video file"""
-#     video_path = os.path.join(app.config['OUTPUT_FOLDER'], f'output_{video_id}.avi')
-    
-#     if not os.path.exists(video_path):
-#         return jsonify({'error': 'Video not found'}), 404
-    
-@app.route('/api/results/<video_id>/video', methods=['GET'])
-def get_video_results(video_id):
-    """Stream video file"""
-    # Try both MP4 and AVI
-    video_path = os.path.join(app.config['OUTPUT_FOLDER'], f'output_{video_id}.mp4')
-    
-    if not os.path.exists(video_path):
-        # Fallback to AVI
-        video_path = os.path.join(app.config['OUTPUT_FOLDER'], f'output_{video_id}.avi')
-    
-    if not os.path.exists(video_path):
-        return jsonify({'error': 'Video not found'}), 404
+  
     
     # Determine MIME type
     if video_path.endswith('.mp4'):
@@ -204,7 +109,7 @@ def get_video_results(video_id):
         as_attachment=False,
         download_name=f'tennis_analysis_{video_id}.{"mp4" if video_path.endswith(".mp4") else "avi"}'
     )
-    # Stream video with proper headers
+
     def generate():
         with open(video_path, 'rb') as f:
             while True:
