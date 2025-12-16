@@ -5,23 +5,7 @@ import './App.css';
 const API_URL = 'http://localhost:5001/api';
 
 // Helper function to convert pixels/sec to km/h
-// Assumes average tennis court is ~23.77m long and calculates scale from video
-function convertPixelsPerSecToKmh(pixelsPerSec, courtPixelHeight = 720, courtRealHeightMeters = 23.77) {
-  // Calculate pixels per meter ratio
-  const pixelsPerMeter = courtPixelHeight / courtRealHeightMeters;
-  
-  // Convert pixels/sec to meters/sec
-  const metersPerSec = pixelsPerSec / pixelsPerMeter;
-  
-  // Convert meters/sec to km/h (multiply by 3.6)
-  const kmPerHour = metersPerSec * 3.6;
-  
-  return kmPerHour;
-}
-
-// Alternative: Use a typical scale factor if we don't have court dimensions
 function estimateSpeedKmh(pixelsPerSec) {
-  // Typical scale: ~30 pixels = 1 meter in standard HD video of tennis court
   const estimatedPixelsPerMeter = 30;
   const metersPerSec = pixelsPerSec / estimatedPixelsPerMeter;
   const kmPerHour = metersPerSec * 3.6;
@@ -122,16 +106,12 @@ export default function TennisAnalysisApp() {
       const data = await response.json();
       console.log('📊 Stats Data Loaded:', data);
       
-      // CRITICAL FIX: Access players from the nested structure
       const player1 = data.players?.player_1 || data.player_1;
       const player2 = data.players?.player_2 || data.player_2;
       
-      console.log('👤 Player 1 Full Object:', player1);
-      console.log('🔑 Player 1 Keys:', player1 ? Object.keys(player1) : 'undefined');
-      console.log('👤 Player 2 Full Object:', player2);
-      console.log('🔑 Player 2 Keys:', player2 ? Object.keys(player2) : 'undefined');
+      console.log('👤 Player 1:', player1);
+      console.log('👤 Player 2:', player2);
       
-      // Create corrected data structure
       const correctedData = {
         ...data,
         player_1: player1,
@@ -145,12 +125,61 @@ export default function TennisAnalysisApp() {
     }
   };
 
-  const downloadVideo = (id) => {
-    window.open(`${API_URL}/results/${id}/video/download`, '_blank');
+  // ✅ FIX 1: Téléchargement vidéo corrigé
+  const downloadVideo = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/results/${id}/video`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tennis_analysis_${id}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading video:', error);
+      alert('Failed to download video. Please try again.');
+    }
   };
 
-  const downloadExcel = (id) => {
-    window.open(`${API_URL}/results/${id}/excel`, '_blank');
+  // ✅ FIX 2: Téléchargement Excel corrigé
+  const downloadExcel = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/results/${id}/excel`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tennis_stats_${id}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading Excel:', error);
+      alert('Failed to download Excel file. Please try again.');
+    }
+  };
+
+  // ✅ FIX 3: Fonction pour afficher le win rate correctement
+  const formatWinRate = (winRate) => {
+    if (!winRate) return '0%';
+    
+    // Si le win_rate est déjà un pourcentage (ex: 50 pour 50%)
+    if (winRate >= 1) {
+      return `${winRate.toFixed(0)}%`;
+    }
+    
+    // Si le win_rate est un ratio (ex: 0.5 pour 50%)
+    return `${(winRate * 100).toFixed(0)}%`;
+  };
+
+  // ✅ FIX 4: Toggle rally avec stopPropagation
+  const toggleRally = (index, event) => {
+    event.stopPropagation();
+    setExpandedRally(expandedRally === index ? null : index);
   };
 
   return (
@@ -170,7 +199,6 @@ export default function TennisAnalysisApp() {
       <header className="header">
         <div className="header-content">
           <div className="header-title">
-            {/* Animated Tennis Racket Logo */}
             <div className="tennis-racket-logo">
               <div className="racket">
                 <div className="racket-head"></div>
@@ -255,7 +283,6 @@ export default function TennisAnalysisApp() {
                   <h3>{status.message}</h3>
                 </div>
                 
-                {/* Horizontal Progress Bar with Tennis Ball */}
                 {status.progress !== undefined && (
                   <div className="progress-bar-container">
                     <div className="progress-bar-wrapper">
@@ -326,14 +353,14 @@ export default function TennisAnalysisApp() {
 
                 {/* Players Side by Side */}
                 <div className="players-container">
-                  {/* Player 1 Stats */}
+                  {/* Player 1 Stats - ✅ WIN RATE CORRIGÉ */}
                   <div className="card player-1-bg">
                     <div className="player-header">
                       <div className="player-badge player-1">1</div>
                       <div style={{ flex: 1 }}>
                         <h3>Player 1</h3>
                         <span className="win-rate player-1">
-                          {statsData.player_1?.win_rate ? `${(statsData.player_1.win_rate * 100).toFixed(0)}% Win Rate` : '0%'}
+                          {formatWinRate(statsData.player_1?.win_rate)} Win Rate
                         </span>
                       </div>
                     </div>
@@ -369,14 +396,14 @@ export default function TennisAnalysisApp() {
                     </div>
                   </div>
 
-                  {/* Player 2 Stats */}
+                  {/* Player 2 Stats - ✅ WIN RATE CORRIGÉ */}
                   <div className="card player-2-bg">
                     <div className="player-header">
                       <div className="player-badge player-2">2</div>
                       <div style={{ flex: 1 }}>
                         <h3>Player 2</h3>
                         <span className="win-rate player-2">
-                          {statsData.player_2?.win_rate ? `${(statsData.player_2.win_rate * 100).toFixed(0)}% Win Rate` : '0%'}
+                          {formatWinRate(statsData.player_2?.win_rate)} Win Rate
                         </span>
                       </div>
                     </div>
@@ -413,7 +440,7 @@ export default function TennisAnalysisApp() {
                   </div>
                 </div>
 
-                {/* Rally Analysis Section */}
+                {/* Rally Analysis Section - ✅ CLICK TO EXPAND CORRIGÉ */}
                 {rallyData && rallyData.rallies && rallyData.rallies.length > 0 && (
                   <div className="card">
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
@@ -444,9 +471,10 @@ export default function TennisAnalysisApp() {
                           className="card"
                           style={{ 
                             cursor: 'pointer',
-                            border: expandedRally === index ? '3px solid #16a34a' : '2px solid rgba(34, 197, 94, 0.3)'
+                            border: expandedRally === index ? '3px solid #16a34a' : '2px solid rgba(34, 197, 94, 0.3)',
+                            transition: 'all 0.3s ease'
                           }}
-                          onClick={() => setExpandedRally(expandedRally === index ? null : index)}
+                          onClick={(e) => toggleRally(index, e)}
                         >
                           {/* Rally Header */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -559,9 +587,9 @@ export default function TennisAnalysisApp() {
                           )}
 
                           {/* Expand Indicator */}
-                          <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+                          <div style={{ textAlign: 'center', marginTop: '0.75rem', pointerEvents: 'none' }}>
                             <span style={{ color: '#22c55e', fontSize: '0.85rem', fontWeight: '700' }}>
-                              {expandedRally === index ? '▲ Click to collapse' : '▼ Click to expand details'}
+                              {expandedRally === index ? '▲ ' : '▼ '}
                             </span>
                           </div>
                         </div>
